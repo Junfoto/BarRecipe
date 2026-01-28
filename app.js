@@ -114,6 +114,16 @@ class BarcodeScanner {
     }
 }
 
+// Settings Controller
+const Settings = {
+    get() {
+        return JSON.parse(localStorage.getItem('recipe_scan_settings') || '{}');
+    },
+    save(settings) {
+        localStorage.setItem('recipe_scan_settings', JSON.stringify(settings));
+    }
+};
+
 // UI Controller
 const UI = {
     views: document.querySelectorAll('.view'),
@@ -127,6 +137,13 @@ const UI = {
         this.setupEventListeners();
         this.loadRecentRecipes();
         this.scanner = new BarcodeScanner('reader', (barcode) => this.handleScanResult(barcode));
+        this.loadSettings();
+    },
+
+    loadSettings() {
+        const settings = Settings.get();
+        document.getElementById('cloud-name').value = settings.cloudName || '';
+        document.getElementById('upload-preset').value = settings.uploadPreset || '';
     },
 
     setupEventListeners() {
@@ -155,6 +172,7 @@ const UI = {
                 reader.onload = (event) => {
                     this.capturedImage = event.target.result;
                     photoPreview.innerHTML = `<img src="${this.capturedImage}" />`;
+                    document.getElementById('btn-extract-text').disabled = false;
                 };
                 reader.readAsDataURL(file);
             }
@@ -165,6 +183,19 @@ const UI = {
 
         // View All
         document.getElementById('btn-view-all').addEventListener('click', () => this.switchView('view-list'));
+
+        // Settings
+        document.getElementById('btn-settings').addEventListener('click', () => this.switchView('view-settings'));
+        document.getElementById('btn-save-settings').addEventListener('click', () => {
+            const cloudName = document.getElementById('cloud-name').value;
+            const uploadPreset = document.getElementById('upload-preset').value;
+            Settings.save({ cloudName, uploadPreset });
+            alert('Settings saved!');
+            this.switchView('view-home');
+        });
+
+        // OCR
+        document.getElementById('btn-extract-text').addEventListener('click', () => this.extractText());
     },
 
     switchView(viewId) {
@@ -209,11 +240,32 @@ const UI = {
 
         if (!name) return alert('Please enter a name');
 
+        let imageUrl = this.capturedImage;
+
+        // Try uploading to Cloudinary if settings exist
+        const settings = Settings.get();
+        if (settings.cloudName && settings.uploadPreset && this.capturedImage && this.capturedImage.startsWith('data:')) {
+            const btn = document.getElementById('btn-save-recipe');
+            const originalText = btn.innerText;
+            btn.innerText = 'Uploading Image...';
+            btn.disabled = true;
+
+            try {
+                imageUrl = await this.uploadToCloudinary(this.capturedImage, settings);
+            } catch (err) {
+                console.error('Cloudinary Upload Failed:', err);
+                alert('Cloudinary upload failed. Saving image locally instead.');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
         const recipe = {
             barcode,
             name,
             instructions,
-            image: this.capturedImage
+            image: imageUrl
         };
 
         try {
@@ -224,6 +276,44 @@ const UI = {
         } catch (err) {
             console.error(err);
             alert('Error saving recipe');
+        }
+    },
+
+    async uploadToCloudinary(base64Image, settings) {
+        const formData = new FormData();
+        formData.append('file', base64Image);
+        formData.append('upload_preset', settings.uploadPreset);
+
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${settings.cloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        return data.secure_url;
+    },
+
+    async extractText() {
+        if (!this.capturedImage) return;
+
+        const loader = document.getElementById('ocr-loading');
+        const btn = document.getElementById('btn-extract-text');
+
+        loader.classList.remove('hidden');
+        btn.disabled = true;
+
+        try {
+            const { data: { text } } = await Tesseract.recognize(this.capturedImage, 'eng', {
+                logger: m => console.log(m)
+            });
+            document.getElementById('recipe-instructions').value = text;
+        } catch (err) {
+            console.error('OCR Error:', err);
+            alert('Failed to extract text from image.');
+        } finally {
+            loader.classList.add('hidden');
+            btn.disabled = false;
         }
     },
 
