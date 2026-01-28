@@ -151,6 +151,11 @@
                     <input type="text" id="upload-preset" placeholder="e.g. ml_default (Unsigned)">
                 </div>
 
+                <div class="input-group">
+                    <label>Cloudinary API Secret</label>
+                    <input type="password" id="cloudinary-api-secret" placeholder="Enter API Secret">
+                </div>
+
                 <hr class="settings-divider">
                 <h3>Firebase Cloud Sync</h3>
                 <p class="settings-hint">Enter your Firebase configuration to sync recipes across devices.</p>
@@ -166,8 +171,28 @@
                 </div>
 
                 <div class="input-group">
+                    <label>Auth Domain</label>
+                    <input type="text" id="fb-auth-domain" placeholder="my-recipe-app.firebaseapp.com">
+                </div>
+
+                <div class="input-group">
+                    <label>Storage Bucket</label>
+                    <input type="text" id="fb-storage-bucket" placeholder="my-recipe-app.appspot.com">
+                </div>
+
+                <div class="input-group">
+                    <label>Messaging Sender ID</label>
+                    <input type="text" id="fb-messaging-sender-id" placeholder="1234567890">
+                </div>
+
+                <div class="input-group">
                     <label>App ID</label>
                     <input type="text" id="fb-app-id" placeholder="1:12345:web:abc">
+                </div>
+
+                <div class="input-group">
+                    <label>Measurement ID</label>
+                    <input type="text" id="fb-measurement-id" placeholder="G-ABCDEF123">
                 </div>
 
                 <div class="input-group">

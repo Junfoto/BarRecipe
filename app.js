@@ -23,8 +23,12 @@ class CloudStore {
         try {
             this.app = initializeApp({
                 apiKey: config.apiKey,
+                authDomain: config.authDomain,
                 projectId: config.projectId,
-                appId: config.appId
+                storageBucket: config.storageBucket,
+                messagingSenderId: config.messagingSenderId,
+                appId: config.appId,
+                measurementId: config.measurementId
             });
             this.db = getFirestore(this.app);
         } catch (err) {
@@ -211,8 +215,12 @@ const UI = {
         if (settings.fbApiKey && settings.fbProjectId && settings.fbAppId && settings.fbUserId) {
             this.cloud = new CloudStore({
                 apiKey: settings.fbApiKey,
+                authDomain: settings.fbAuthDomain,
                 projectId: settings.fbProjectId,
+                storageBucket: settings.fbStorageBucket,
+                messagingSenderId: settings.fbMessagingSenderId,
                 appId: settings.fbAppId,
+                measurementId: settings.fbMeasurementId,
                 userId: settings.fbUserId
             });
             document.getElementById('sync-status').classList.add('online');
@@ -227,11 +235,16 @@ const UI = {
         document.getElementById('cloud-name').value = settings.cloudName || '';
         document.getElementById('cloudinary-api-key').value = settings.cloudinaryApiKey || '';
         document.getElementById('upload-preset').value = settings.uploadPreset || '';
+        document.getElementById('cloudinary-api-secret').value = settings.cloudinaryApiSecret || '';
 
         // Firebase fields
         document.getElementById('fb-api-key').value = settings.fbApiKey || '';
         document.getElementById('fb-project-id').value = settings.fbProjectId || '';
+        document.getElementById('fb-auth-domain').value = settings.fbAuthDomain || '';
+        document.getElementById('fb-storage-bucket').value = settings.fbStorageBucket || '';
+        document.getElementById('fb-messaging-sender-id').value = settings.fbMessagingSenderId || '';
         document.getElementById('fb-app-id').value = settings.fbAppId || '';
+        document.getElementById('fb-measurement-id').value = settings.fbMeasurementId || '';
         document.getElementById('fb-user-id').value = settings.fbUserId || '';
     },
 
@@ -286,16 +299,22 @@ const UI = {
             const cloudName = document.getElementById('cloud-name').value;
             const cloudinaryApiKey = document.getElementById('cloudinary-api-key').value;
             const uploadPreset = document.getElementById('upload-preset').value;
+            const cloudinaryApiSecret = document.getElementById('cloudinary-api-secret').value;
 
             // Firebase fields
             const fbApiKey = document.getElementById('fb-api-key').value;
             const fbProjectId = document.getElementById('fb-project-id').value;
+            const fbAuthDomain = document.getElementById('fb-auth-domain').value;
+            const fbStorageBucket = document.getElementById('fb-storage-bucket').value;
+            const fbMessagingSenderId = document.getElementById('fb-messaging-sender-id').value;
             const fbAppId = document.getElementById('fb-app-id').value;
+            const fbMeasurementId = document.getElementById('fb-measurement-id').value;
             const fbUserId = document.getElementById('fb-user-id').value;
 
             Settings.save({
-                cloudName, cloudinaryApiKey, uploadPreset,
-                fbApiKey, fbProjectId, fbAppId, fbUserId
+                cloudName, cloudinaryApiKey, uploadPreset, cloudinaryApiSecret,
+                fbApiKey, fbProjectId, fbAuthDomain, fbStorageBucket,
+                fbMessagingSenderId, fbAppId, fbMeasurementId, fbUserId
             });
 
             this.initCloud();
