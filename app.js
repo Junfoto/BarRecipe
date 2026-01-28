@@ -305,7 +305,7 @@ const UI = {
         document.getElementById('btn-settings').addEventListener('click', () => {
             this.switchView('view-settings');
         });
-        document.getElementById('btn-save-settings').addEventListener('click', () => {
+        document.getElementById('btn-save-settings').addEventListener('click', async () => {
             const cloudName = document.getElementById('cloud-name').value;
             const cloudinaryApiKey = document.getElementById('cloudinary-api-key').value;
             const uploadPreset = document.getElementById('upload-preset').value;
@@ -319,18 +319,51 @@ const UI = {
             const fbMessagingSenderId = document.getElementById('fb-messaging-sender-id').value;
             const fbAppId = document.getElementById('fb-app-id').value;
             const fbMeasurementId = document.getElementById('fb-measurement-id').value;
-            const newSettings = {
+            const fbUserId = document.getElementById('fb-user-id').value;
+
+            const inputSettings = {
                 cloudName, cloudinaryApiKey, uploadPreset, cloudinaryApiSecret,
                 fbApiKey, fbProjectId, fbAuthDomain, fbStorageBucket,
                 fbMessagingSenderId, fbAppId, fbMeasurementId, fbUserId
             };
-            Settings.save(newSettings);
 
-            this.initCloud();
-            if (this.cloud) {
-                this.cloud.saveSettings(newSettings).catch(err => console.error("Cloud settings save failed:", err));
+            // Smart Merge: Try to fetch existing settings first before overwriting
+            let finalSettings = { ...inputSettings };
+            if (fbApiKey && fbProjectId && fbAppId && fbUserId) {
+                const tempCloud = new CloudStore({
+                    apiKey: fbApiKey,
+                    authDomain: fbAuthDomain,
+                    projectId: fbProjectId,
+                    storageBucket: fbStorageBucket,
+                    messagingSenderId: fbMessagingSenderId,
+                    appId: fbAppId,
+                    measurementId: fbMeasurementId,
+                    userId: fbUserId
+                });
+
+                try {
+                    const cloudSettings = await tempCloud.getSettings();
+                    if (cloudSettings) {
+                        // Merge: only take cloud values if the current inputs are empty
+                        for (const key in cloudSettings) {
+                            if (!finalSettings[key] || finalSettings[key] === '') {
+                                finalSettings[key] = cloudSettings[key];
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Fetch before save failed:", err);
+                }
             }
-            alert('Settings saved!');
+
+            Settings.save(finalSettings);
+            this.loadSettings();
+            this.initCloud();
+
+            if (this.cloud) {
+                this.cloud.saveSettings(finalSettings).catch(err => console.error("Cloud settings save failed:", err));
+            }
+            alert('Settings saved and synced!');
             this.switchView('view-home');
         });
 
