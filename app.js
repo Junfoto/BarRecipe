@@ -303,7 +303,12 @@ const UI = {
 
         // Settings
         document.getElementById('btn-settings').addEventListener('click', () => {
-            this.switchView('view-settings');
+            const code = prompt("Enter passcode to access settings:");
+            if (code === "0077") {
+                this.switchView('view-settings');
+            } else if (code !== null) {
+                alert("Incorrect passcode.");
+            }
         });
         document.getElementById('btn-save-settings').addEventListener('click', () => {
             const cloudName = document.getElementById('cloud-name').value;
