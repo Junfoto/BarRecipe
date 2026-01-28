@@ -8,6 +8,7 @@ import {
     collection,
     doc,
     getDocs,
+    getDoc,
     setDoc,
     deleteDoc,
     query,
@@ -53,6 +54,19 @@ class CloudStore {
         const q = collection(this.db, "users", this.userId, "recipes");
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => doc.data());
+    }
+
+    async saveSettings(settings) {
+        if (!this.db || !this.userId) return;
+        const ref = doc(this.db, "users", this.userId, "config", "appSettings");
+        await setDoc(ref, settings);
+    }
+
+    async getSettings() {
+        if (!this.db || !this.userId) return null;
+        const ref = doc(this.db, "users", this.userId, "config", "appSettings");
+        const docSnap = await getDoc(ref);
+        return docSnap.exists() ? docSnap.data() : null;
     }
 }
 
@@ -207,6 +221,7 @@ const UI = {
 
         if (this.cloud) {
             this.syncWithCloud();
+            this.syncSettingsWithCloud();
         }
     },
 
@@ -309,15 +324,17 @@ const UI = {
             const fbMessagingSenderId = document.getElementById('fb-messaging-sender-id').value;
             const fbAppId = document.getElementById('fb-app-id').value;
             const fbMeasurementId = document.getElementById('fb-measurement-id').value;
-            const fbUserId = document.getElementById('fb-user-id').value;
-
-            Settings.save({
+            const newSettings = {
                 cloudName, cloudinaryApiKey, uploadPreset, cloudinaryApiSecret,
                 fbApiKey, fbProjectId, fbAuthDomain, fbStorageBucket,
                 fbMessagingSenderId, fbAppId, fbMeasurementId, fbUserId
-            });
+            };
+            Settings.save(newSettings);
 
             this.initCloud();
+            if (this.cloud) {
+                this.cloud.saveSettings(newSettings).catch(err => console.error("Cloud settings save failed:", err));
+            }
             alert('Settings saved!');
             this.switchView('view-home');
         });
@@ -555,6 +572,26 @@ const UI = {
             console.error("Cloud sync failed:", err);
         } finally {
             syncStatus.classList.remove('syncing');
+        }
+    },
+
+    async syncSettingsWithCloud() {
+        if (!this.cloud) return;
+
+        try {
+            const cloudSettings = await this.cloud.getSettings();
+            if (cloudSettings) {
+                const localSettings = Settings.get();
+                // Merge cloud settings into local, prioritizing cloud for shared config
+                // (except for the Firebase config itself which is needed to connect, 
+                // but we update it anyway for consistency)
+                const mergedSettings = { ...localSettings, ...cloudSettings };
+                Settings.save(mergedSettings);
+                this.loadSettings(); // Refresh UI inputs
+                console.log("Settings synced from cloud.");
+            }
+        } catch (err) {
+            console.error("Cloud settings sync failed:", err);
         }
     },
 
