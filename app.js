@@ -2,7 +2,7 @@
  * RecipeScan DB - App Logic
  */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp, getApps, getApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
     getFirestore,
     collection,
@@ -17,19 +17,28 @@ import {
 
 class CloudStore {
     constructor(config) {
-        this.app = null;
-        this.db = null;
         this.userId = config.userId;
+        this.config = config;
+        this.app = null; // Initialize app and db to null
+        this.db = null;
+    }
 
+    async init() {
         try {
+            // Check if app already exists
+            const existingApps = getApps();
+            if (existingApps.length > 0) {
+                await deleteApp(getApp());
+            }
+
             this.app = initializeApp({
-                apiKey: config.apiKey,
-                authDomain: config.authDomain,
-                projectId: config.projectId,
-                storageBucket: config.storageBucket,
-                messagingSenderId: config.messagingSenderId,
-                appId: config.appId,
-                measurementId: config.measurementId
+                apiKey: this.config.apiKey,
+                authDomain: this.config.authDomain,
+                projectId: this.config.projectId,
+                storageBucket: this.config.storageBucket,
+                messagingSenderId: this.config.messagingSenderId,
+                appId: this.config.appId,
+                measurementId: this.config.measurementId
             });
             this.db = getFirestore(this.app);
         } catch (err) {
@@ -214,7 +223,7 @@ const UI = {
     async init() {
         await this.store.init();
         this.loadSettings();
-        this.initCloud();
+        await this.initCloud();
         this.setupEventListeners();
         this.loadRecentRecipes();
         this.scanner = new BarcodeScanner('reader', (barcode) => this.handleScanResult(barcode));
@@ -225,7 +234,7 @@ const UI = {
         }
     },
 
-    initCloud() {
+    async initCloud() {
         const settings = Settings.get();
         if (settings.fbApiKey && settings.fbProjectId && settings.fbAppId && settings.fbUserId) {
             this.cloud = new CloudStore({
@@ -238,6 +247,7 @@ const UI = {
                 measurementId: settings.fbMeasurementId,
                 userId: settings.fbUserId
             });
+            await this.cloud.init();
             document.getElementById('sync-status').classList.add('online');
         } else {
             this.cloud = null;
@@ -321,6 +331,11 @@ const UI = {
             const fbMeasurementId = document.getElementById('fb-measurement-id').value;
             const fbUserId = document.getElementById('fb-user-id').value;
 
+            const btn = document.getElementById('btn-save-settings');
+            const originalText = btn.innerText;
+            btn.innerText = 'Syncing...';
+            btn.disabled = true;
+
             const inputSettings = {
                 cloudName, cloudinaryApiKey, uploadPreset, cloudinaryApiSecret,
                 fbApiKey, fbProjectId, fbAuthDomain, fbStorageBucket,
@@ -340,6 +355,7 @@ const UI = {
                     measurementId: fbMeasurementId,
                     userId: fbUserId
                 });
+                await tempCloud.init();
 
                 try {
                     const cloudSettings = await tempCloud.getSettings();
@@ -358,11 +374,15 @@ const UI = {
 
             Settings.save(finalSettings);
             this.loadSettings();
-            this.initCloud();
+            await this.initCloud();
 
             if (this.cloud) {
                 this.cloud.saveSettings(finalSettings).catch(err => console.error("Cloud settings save failed:", err));
             }
+
+            btn.innerText = originalText;
+            btn.disabled = false;
+
             alert('Settings saved and synced!');
             this.switchView('view-home');
         });
