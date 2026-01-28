@@ -526,6 +526,11 @@ const UI = {
                 if (document.getElementById('view-list').classList.contains('active')) {
                     this.loadFullList();
                 }
+
+                // If deleted from detail view, go back home
+                if (document.getElementById('view-recipe-detail').classList.contains('active')) {
+                    this.switchView('view-home');
+                }
             } catch (err) {
                 console.error('Delete failed:', err);
                 alert('Failed to delete recipe.');
@@ -556,11 +561,19 @@ const UI = {
     showRecipeDetail(recipe) {
         const container = document.getElementById('recipe-detail-content');
         container.innerHTML = `
-            <h2>${recipe.name}</h2>
+            <div class="detail-header">
+                <h2>${recipe.name}</h2>
+                <button class="btn-delete-detail" id="btn-delete-recipe-detail">Delete Recipe</button>
+            </div>
             <div class="meta">Barcode: ${recipe.barcode}</div>
             ${recipe.image ? `<img src="${recipe.image}" class="detail-img">` : ''}
             <div class="recipe-text">${recipe.instructions || 'No instructions provided.'}</div>
         `;
+
+        document.getElementById('btn-delete-recipe-detail').addEventListener('click', () => {
+            this.confirmDelete(recipe);
+        });
+
         this.switchView('view-recipe-detail');
     }
 };

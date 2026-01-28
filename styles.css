@@ -574,6 +574,30 @@ section h2 {
     font-size: 16px;
     color: #ddd;
     white-space: pre-wrap;
+    margin-bottom: 40px;
+}
+
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.btn-delete-detail {
+    background: rgba(255, 68, 68, 0.1);
+    color: #ff4444;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    border: 1px solid rgba(255, 68, 68, 0.2);
+    white-space: nowrap;
+}
+
+.btn-delete-detail:hover {
+    background: #ff4444;
+    color: white;
 }
 
 /* Bottom Nav */
