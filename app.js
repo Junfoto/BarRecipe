@@ -303,13 +303,20 @@ const UI = {
 
         // Settings
         document.getElementById('btn-settings').addEventListener('click', () => {
-            const code = prompt("Enter passcode to access settings:");
-            if (code === "0077") {
-                this.switchView('view-settings');
-            } else if (code !== null) {
-                alert("Incorrect passcode.");
-            }
+            this.showPasscodeModal();
         });
+
+        // Passcode Modal Actions
+        document.getElementById('btn-modal-cancel').addEventListener('click', () => this.hidePasscodeModal());
+        document.getElementById('modal-passcode').addEventListener('click', (e) => {
+            if (e.target.id === 'modal-passcode') this.hidePasscodeModal();
+        });
+
+        document.getElementById('btn-modal-unlock').addEventListener('click', () => this.validatePasscode());
+        document.getElementById('input-passcode').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.validatePasscode();
+        });
+
         document.getElementById('btn-save-settings').addEventListener('click', () => {
             const cloudName = document.getElementById('cloud-name').value;
             const cloudinaryApiKey = document.getElementById('cloudinary-api-key').value;
@@ -612,6 +619,35 @@ const UI = {
         });
 
         this.switchView('view-recipe-detail');
+    },
+
+    showPasscodeModal() {
+        const modal = document.getElementById('modal-passcode');
+        const input = document.getElementById('input-passcode');
+        const error = document.getElementById('passcode-error');
+
+        input.value = '';
+        error.classList.add('hidden');
+        modal.classList.remove('hidden');
+        input.focus();
+    },
+
+    hidePasscodeModal() {
+        document.getElementById('modal-passcode').classList.add('hidden');
+    },
+
+    validatePasscode() {
+        const input = document.getElementById('input-passcode');
+        const error = document.getElementById('passcode-error');
+
+        if (input.value === '0077') {
+            this.hidePasscodeModal();
+            this.switchView('view-settings');
+        } else {
+            error.classList.remove('hidden');
+            input.value = '';
+            input.focus();
+        }
     }
 };
 
