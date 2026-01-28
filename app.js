@@ -12,7 +12,7 @@ class RecipeStore {
     async init() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.version);
-            
+
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 if (!db.objectStoreNames.contains('recipes')) {
@@ -72,12 +72,23 @@ class BarcodeScanner {
 
     async start() {
         try {
+            // Explicitly request camera permissions first
+            await navigator.mediaDevices.getUserMedia({ video: true });
+
             const cameras = await Html5Qrcode.getCameras();
             if (cameras && cameras.length > 0) {
-                const cameraId = cameras.length > 1 ? cameras[1].id : cameras[0].id; // Prefer back camera
+                // Find back camera if possible, otherwise use first available
+                let cameraId = cameras[0].id;
+                const backCamera = cameras.find(c => c.label.toLowerCase().includes('back'));
+                if (backCamera) {
+                    cameraId = backCamera.id;
+                } else if (cameras.length > 1) {
+                    cameraId = cameras[1].id;
+                }
+
                 await this.scanner.start(
-                    cameraId, 
-                    this.config, 
+                    cameraId,
+                    this.config,
                     (decodedText) => {
                         this.stop();
                         this.onResult(decodedText);
@@ -88,7 +99,11 @@ class BarcodeScanner {
             }
         } catch (err) {
             console.error('Scanner Error:', err);
-            alert('Could not start camera. Please check permissions.');
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                alert('Camera access denied. Please enable camera permissions in your browser settings to scan barcodes.');
+            } else {
+                alert('Could not start camera. Please check permissions and ensure no other app is using the camera.');
+            }
         }
     }
 
@@ -130,9 +145,9 @@ const UI = {
         // Photo Capture
         const cameraInput = document.getElementById('camera-input');
         const photoPreview = document.getElementById('photo-preview');
-        
+
         document.getElementById('btn-take-photo').addEventListener('click', () => cameraInput.click());
-        
+
         cameraInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -224,10 +239,10 @@ const UI = {
 
         // Sort by date desc and take top 3
         recipes.sort((a, b) => new Date(b.date) - new Date(a.date))
-               .slice(0, 3)
-               .forEach(recipe => {
-                   list.appendChild(this.createRecipeCard(recipe));
-               });
+            .slice(0, 3)
+            .forEach(recipe => {
+                list.appendChild(this.createRecipeCard(recipe));
+            });
     },
 
     async loadFullList() {
