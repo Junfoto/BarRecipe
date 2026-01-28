@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RecipeScan DB - Smart Cooking Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Main Landing / Home View -->
+        <main id="view-home" class="view active">
+            <header>
+                <div class="logo">RecipeScan<span>DB</span></div>
+                <div class="user-profile">
+                    <div class="avatar"></div>
+                </div>
+            </header>
+            
+            <section class="hero">
+                <h1>Your Intelligent <br>Recipe Database</h1>
+                <p>Scan a barcode, capture the food, <br>and never lose a recipe again.</p>
+                
+                <div class="action-buttons">
+                    <button id="btn-start-scan" class="btn-primary">
+                        <span class="icon">📷</span> Scan Barcode
+                    </button>
+                    <button id="btn-view-all" class="btn-secondary">
+                        View Saved Recipes
+                    </button>
+                </div>
+            </section>
+
+            <section class="recent-recipes">
+                <div class="section-header">
+                    <h2>Recent Scans</h2>
+                    <a href="#" class="link-all">See All</a>
+                </div>
+                <div id="recent-list" class="recipe-grid">
+                    <!-- Dynamic Items -->
+                    <div class="empty-state">No recipes saved yet. Scan a barcode to start!</div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Scanner View -->
+        <section id="view-scanner" class="view">
+            <button class="btn-back" data-target="view-home">← Back</button>
+            <div class="scanner-container">
+                <div class="scanner-header">
+                    <h2>Scan Barcode</h2>
+                    <p>Align the barcode within the frame</p>
+                </div>
+                <div id="reader"></div>
+                <div class="scanner-overlay">
+                    <div class="scanner-frame"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recipe Entry View -->
+        <section id="view-recipe-entry" class="view">
+            <button class="btn-back" data-target="view-home">← Cancel</button>
+            <div class="entry-container">
+                <h2>New Recipe</h2>
+                
+                <div class="input-group">
+                    <label>Barcode</label>
+                    <input type="text" id="recipe-barcode" readonly>
+                </div>
+
+                <div class="photo-capture">
+                    <label>Food Container Photo</label>
+                    <div id="photo-preview" class="photo-preview">
+                        <span class="placeholder">Take a photo of the instructions</span>
+                    </div>
+                    <button id="btn-take-photo" class="btn-secondary">Take Photo</button>
+                    <input type="file" id="camera-input" accept="image/*" capture="environment" hidden>
+                </div>
+
+                <div class="input-group">
+                    <label>Recipe Name</label>
+                    <input type="text" id="recipe-name" placeholder="e.g. Spicy Miso Ramen">
+                </div>
+
+                <div class="input-group">
+                    <label>Cooking Instructions</label>
+                    <textarea id="recipe-instructions" placeholder="Paste or type instructions here..."></textarea>
+                </div>
+
+                <button id="btn-save-recipe" class="btn-primary">Save to Database</button>
+            </div>
+        </section>
+
+        <!-- Recipe Detail View -->
+        <section id="view-recipe-detail" class="view">
+            <button class="btn-back" data-target="view-home">← Back</button>
+            <div id="recipe-detail-content" class="detail-container">
+                <!-- Dynamic Content -->
+            </div>
+        </section>
+
+        <!-- List View -->
+        <section id="view-list" class="view">
+             <button class="btn-back" data-target="view-home">← Back</button>
+             <div class="entry-container">
+                 <h2>All Recipes</h2>
+                 <div id="full-list" class="recipe-grid"></div>
+             </div>
+        </section>
+    </div>
+
+    <!-- Navigation Bar (Mobile) -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-target="view-home">
+            <i class="icon">🏠</i>
+            <span>Home</span>
+        </button>
+        <button class="nav-item" id="nav-scan">
+            <i class="icon">📷</i>
+            <span>Scan</span>
+        </button>
+        <button class="nav-item" data-target="view-list">
+            <i class="icon">📖</i>
+            <span>Recipes</span>
+        </button>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
