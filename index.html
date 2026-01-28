@@ -20,6 +20,9 @@
             <header>
                 <div class="logo">RecipeScan<span>DB</span></div>
                 <div class="user-profile">
+                    <div id="sync-status" class="sync-status" title="Cloud Sync Status">
+                        <span class="sync-icon">☁️</span>
+                    </div>
                     <button id="btn-settings" class="btn-icon">⚙️</button>
                     <div class="avatar"></div>
                 </div>
@@ -139,8 +142,38 @@
                 </div>
 
                 <div class="input-group">
+                    <label>Cloudinary API Key</label>
+                    <input type="password" id="cloudinary-api-key" placeholder="Enter API Key">
+                </div>
+
+                <div class="input-group">
                     <label>Upload Preset</label>
                     <input type="text" id="upload-preset" placeholder="e.g. ml_default (Unsigned)">
+                </div>
+
+                <hr class="settings-divider">
+                <h3>Firebase Cloud Sync</h3>
+                <p class="settings-hint">Enter your Firebase configuration to sync recipes across devices.</p>
+
+                <div class="input-group">
+                    <label>Firebase API Key</label>
+                    <input type="password" id="fb-api-key" placeholder="AIzaSy...">
+                </div>
+
+                <div class="input-group">
+                    <label>Project ID</label>
+                    <input type="text" id="fb-project-id" placeholder="my-recipe-app">
+                </div>
+
+                <div class="input-group">
+                    <label>App ID</label>
+                    <input type="text" id="fb-app-id" placeholder="1:12345:web:abc">
+                </div>
+
+                <div class="input-group">
+                    <label>User Sync ID</label>
+                    <input type="text" id="fb-user-id" placeholder="Enter a unique name or email">
+                    <p class="input-helper">Use the same ID on other devices to sync them.</p>
                 </div>
 
                 <button id="btn-save-settings" class="btn-primary">Save Settings</button>
@@ -165,7 +198,7 @@
         </button>
     </nav>
 
-    <script src="app.js"></script>
+    <script src="app.js" type="module"></script>
 </body>
 
 </html>

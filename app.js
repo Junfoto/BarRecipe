@@ -2,6 +2,56 @@
  * RecipeScan DB - App Logic
  */
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    doc,
+    getDocs,
+    setDoc,
+    deleteDoc,
+    query,
+    where
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+class CloudStore {
+    constructor(config) {
+        this.app = null;
+        this.db = null;
+        this.userId = config.userId;
+
+        try {
+            this.app = initializeApp({
+                apiKey: config.apiKey,
+                projectId: config.projectId,
+                appId: config.appId
+            });
+            this.db = getFirestore(this.app);
+        } catch (err) {
+            console.error("Firebase Init Error:", err);
+        }
+    }
+
+    async saveRecipe(recipe) {
+        if (!this.db || !this.userId) return;
+        const ref = doc(this.db, "users", this.userId, "recipes", recipe.barcode);
+        await setDoc(ref, recipe);
+    }
+
+    async deleteRecipe(barcode) {
+        if (!this.db || !this.userId) return;
+        const ref = doc(this.db, "users", this.userId, "recipes", barcode);
+        await deleteDoc(ref);
+    }
+
+    async getAllRecipes() {
+        if (!this.db || !this.userId) return [];
+        const q = collection(this.db, "users", this.userId, "recipes");
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => doc.data());
+    }
+}
+
 class RecipeStore {
     constructor() {
         this.dbName = 'RecipeScanDB';
@@ -58,6 +108,16 @@ class RecipeStore {
             const store = transaction.objectStore('recipes');
             const request = store.getAll();
             request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async deleteRecipe(barcode) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['recipes'], 'readwrite');
+            const store = transaction.objectStore('recipes');
+            const request = store.delete(barcode);
+            request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
         });
     }
@@ -129,21 +189,50 @@ const UI = {
     views: document.querySelectorAll('.view'),
     navItems: document.querySelectorAll('.nav-item'),
     store: new RecipeStore(),
+    cloud: null,
     scanner: null,
     capturedImage: null,
 
     async init() {
         await this.store.init();
+        this.loadSettings();
+        this.initCloud();
         this.setupEventListeners();
         this.loadRecentRecipes();
         this.scanner = new BarcodeScanner('reader', (barcode) => this.handleScanResult(barcode));
-        this.loadSettings();
+
+        if (this.cloud) {
+            this.syncWithCloud();
+        }
+    },
+
+    initCloud() {
+        const settings = Settings.get();
+        if (settings.fbApiKey && settings.fbProjectId && settings.fbAppId && settings.fbUserId) {
+            this.cloud = new CloudStore({
+                apiKey: settings.fbApiKey,
+                projectId: settings.fbProjectId,
+                appId: settings.fbAppId,
+                userId: settings.fbUserId
+            });
+            document.getElementById('sync-status').classList.add('online');
+        } else {
+            this.cloud = null;
+            document.getElementById('sync-status').classList.remove('online');
+        }
     },
 
     loadSettings() {
         const settings = Settings.get();
         document.getElementById('cloud-name').value = settings.cloudName || '';
+        document.getElementById('cloudinary-api-key').value = settings.cloudinaryApiKey || '';
         document.getElementById('upload-preset').value = settings.uploadPreset || '';
+
+        // Firebase fields
+        document.getElementById('fb-api-key').value = settings.fbApiKey || '';
+        document.getElementById('fb-project-id').value = settings.fbProjectId || '';
+        document.getElementById('fb-app-id').value = settings.fbAppId || '';
+        document.getElementById('fb-user-id').value = settings.fbUserId || '';
     },
 
     setupEventListeners() {
@@ -185,11 +274,31 @@ const UI = {
         document.getElementById('btn-view-all').addEventListener('click', () => this.switchView('view-list'));
 
         // Settings
-        document.getElementById('btn-settings').addEventListener('click', () => this.switchView('view-settings'));
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            const code = prompt("Enter passcode to access settings:");
+            if (code === "0077") {
+                this.switchView('view-settings');
+            } else if (code !== null) {
+                alert("Incorrect passcode.");
+            }
+        });
         document.getElementById('btn-save-settings').addEventListener('click', () => {
             const cloudName = document.getElementById('cloud-name').value;
+            const cloudinaryApiKey = document.getElementById('cloudinary-api-key').value;
             const uploadPreset = document.getElementById('upload-preset').value;
-            Settings.save({ cloudName, uploadPreset });
+
+            // Firebase fields
+            const fbApiKey = document.getElementById('fb-api-key').value;
+            const fbProjectId = document.getElementById('fb-project-id').value;
+            const fbAppId = document.getElementById('fb-app-id').value;
+            const fbUserId = document.getElementById('fb-user-id').value;
+
+            Settings.save({
+                cloudName, cloudinaryApiKey, uploadPreset,
+                fbApiKey, fbProjectId, fbAppId, fbUserId
+            });
+
+            this.initCloud();
             alert('Settings saved!');
             this.switchView('view-home');
         });
@@ -270,6 +379,12 @@ const UI = {
 
         try {
             await this.store.saveRecipe(recipe);
+
+            // Sync to cloud
+            if (this.cloud) {
+                this.cloud.saveRecipe(recipe).catch(err => console.error("Cloud save failed:", err));
+            }
+
             alert('Recipe saved!');
             this.loadRecentRecipes();
             this.switchView('view-home');
@@ -359,9 +474,64 @@ const UI = {
                 <h3>${recipe.name}</h3>
                 <p>${recipe.barcode}</p>
             </div>
+            <button class="btn-delete" title="Delete Recipe">🗑️</button>
         `;
-        card.onclick = () => this.showRecipeDetail(recipe);
+
+        // Detail view on card click
+        card.onclick = (e) => {
+            if (e.target.classList.contains('btn-delete')) return;
+            this.showRecipeDetail(recipe);
+        };
+
+        // Delete button logic
+        const deleteBtn = card.querySelector('.btn-delete');
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.confirmDelete(recipe);
+        };
+
         return card;
+    },
+
+    async confirmDelete(recipe) {
+        if (confirm(`Are you sure you want to delete "${recipe.name}"?`)) {
+            try {
+                await this.store.deleteRecipe(recipe.barcode);
+
+                // Sync to cloud
+                if (this.cloud) {
+                    this.cloud.deleteRecipe(recipe.barcode).catch(err => console.error("Cloud delete failed:", err));
+                }
+
+                this.loadRecentRecipes();
+                if (document.getElementById('view-list').classList.contains('active')) {
+                    this.loadFullList();
+                }
+            } catch (err) {
+                console.error('Delete failed:', err);
+                alert('Failed to delete recipe.');
+            }
+        }
+    },
+
+    async syncWithCloud() {
+        if (!this.cloud) return;
+
+        const syncStatus = document.getElementById('sync-status');
+        syncStatus.classList.add('syncing');
+
+        try {
+            const cloudRecipes = await this.cloud.getAllRecipes();
+            for (const recipe of cloudRecipes) {
+                await this.store.saveRecipe(recipe);
+            }
+            this.loadRecentRecipes();
+            console.log(`Synced ${cloudRecipes.length} recipes from cloud.`);
+        } catch (err) {
+            console.error("Cloud sync failed:", err);
+        } finally {
+            syncStatus.classList.remove('syncing');
+        }
     },
 
     showRecipeDetail(recipe) {

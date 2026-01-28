@@ -101,6 +101,45 @@ header {
     color: var(--text-main);
 }
 
+.sync-status {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-surface);
+    border-radius: 50%;
+    color: var(--text-dim);
+    font-size: 16px;
+    transition: var(--transition);
+}
+
+.sync-status.syncing .sync-icon {
+    animation: pulse 1.5s infinite ease-in-out;
+    color: var(--primary);
+}
+
+.sync-status.online {
+    color: #4cd964;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 /* Hero Section */
 .hero {
     margin: 32px 0 48px;
@@ -205,6 +244,40 @@ section h2 {
     display: flex;
     gap: 16px;
     align-items: center;
+    position: relative;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.recipe-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.btn-delete {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 0, 0, 0.1);
+    color: #ff4444;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.recipe-card:hover .btn-delete {
+    opacity: 1;
+}
+
+.btn-delete:hover {
+    background: #ff4444;
+    color: white;
 }
 
 .recipe-card img {
@@ -460,6 +533,23 @@ section h2 {
     margin-top: 24px;
     font-size: 12px;
     text-align: center;
+}
+
+.settings-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 32px 0 24px;
+}
+
+.entry-container h3 {
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.input-helper {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
 }
 
 /* Detail View */
